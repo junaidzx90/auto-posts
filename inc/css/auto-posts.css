@@ -1,0 +1,116 @@
+.ap_settings__tab {
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+a.ap_tablinks {
+    color: #2271b1;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+}
+.ap_settings__tab a {
+    background-color: #e6e6e6;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 14px;
+    transition: 0.3s;
+}
+.ap_settings__tab a:hover {
+    background-color: #ddd;
+}
+.ap_settings__tab a.active {
+    background-color: #2271b1;
+    color: #fff;
+}
+.ap_tabcontent {
+    display: none;
+    border-top: none;
+}
+.ap_tabcontent.active{
+    display: block;
+}
+.ap_tablinks.active{
+    background-color: #ddd; 
+}
+
+
+
+.__default_template{
+    width: 75%;
+    margin-top: 20px;
+}
+.__default_template table{
+    width: 100%;
+    margin-bottom: 20px;
+}
+.__default_template table tr th {
+    width: 40%;
+    text-align: left;
+    vertical-align: baseline;
+}
+.__default_template table tr td{
+    width: 60%;
+    padding-left: 20px;
+}
+.__default_template table tr td p{
+    margin: 0;
+}
+.__default_template table tr th, .__default_template table tr td{
+    padding-bottom: 20px;
+}
+.__default_templates{
+    margin-bottom: 20px;
+}
+.template_content{    
+    position: relative;
+    margin-bottom: 18px;
+}
+.template_content .remove_template {
+    position: absolute;
+    top: 0;
+    right: -32px;
+    display: inline-block;
+    color: red;
+    font-size: 36px;
+    transform: rotate(45deg);
+    cursor: pointer;
+    user-select: none;
+}
+.ap_remove_thumbnail, .removeTemplate{
+    border-color: red !important; 
+    color: red !important;
+    box-shadow:none !important;
+}
+.preview_thumbnail_img{
+    width: 190px;
+    margin: 10px 0; 
+    border: 2px solid #ddd; 
+    border-radius: 5px;
+}
+div#additional_templates {
+    margin: 20px 0;
+}
+
+.__template {
+    margin-bottom: 30px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 30px;
+}
+.__template:last-child{
+    border-bottom: none;
+}
+
+#loaderspin {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+    z-index: 999999;
+  }
