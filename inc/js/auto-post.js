@@ -49,6 +49,21 @@ jQuery(document).ready(function ($) {
     });
   }
 
+  // Add single title
+  $(document).on('click', '.add_new_title', function (e) {
+    e.preventDefault();
+    let namef = $(this).data('name');
+    let textareaContent = `<div class="title_content"><input type="text" name="${namef}[ap_titles][]" placeholder="How to %%cat_name%% Fix Guide." class="widefat" value=""><p>Use <code>%%cat_name%%</code> to show category name inside texts</p><span class="remove_title">+</span></div>`;
+    $(this).parents('td').find('._default_titles').append(textareaContent);
+  });
+
+  // Remove title
+  $(document).on('click', '.remove_title', function () {
+    if (confirm('You will lose your saved title!')) {
+      $(this).parents('.title_content').remove();
+    }
+  });
+
   // Add single template content
   $(document).on('click', '.add_new_template', function (e) {
     e.preventDefault();
@@ -56,6 +71,7 @@ jQuery(document).ready(function ($) {
     let textareaContent = `<div class="template_content"> <textarea name="${namef}[ap_contents][]" placeholder="To fix the issues in %%cat_name%%, you have to do the following steps." class="widefat" rows="5"></textarea> <p>Use <code>%%cat_name%%</code> to show category name inside texts.</p> <span class="remove_template">+</span></div>`;
     $(this).parents('td').find('.__default_templates').append(textareaContent);
   });
+  
   // Remove template content
   $(document).on('click', '.remove_template', function () {
     if (confirm('You will lose your saved template!')) {

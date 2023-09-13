@@ -60,14 +60,14 @@ a.ap_tablinks {
 .__default_template table tr th, .__default_template table tr td{
     padding-bottom: 20px;
 }
-.__default_templates{
+.__default_templates, ._default_titles{
     margin-bottom: 20px;
 }
-.template_content{    
+.template_content, .title_content{    
     position: relative;
     margin-bottom: 18px;
 }
-.template_content .remove_template {
+.template_content .remove_template, .title_content .remove_title {
     position: absolute;
     top: 0;
     right: -32px;

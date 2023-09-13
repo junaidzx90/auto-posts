@@ -22,6 +22,7 @@
     function run(){
         add_action( "admin_menu", [$this, "auto_posts_admin_menu"] );
         add_action( "create_category", [$this, "create_new_catregory_action"], 10, 1 );
+        add_action( "create_post_tag", [$this, "create_new_catregory_action"], 10, 1 );
         add_action( "delete_category", [$this, "delete_category_action_for_post"], 10, 1 );
         add_action( "admin_enqueue_scripts", [$this, "__admin_enqueue_scripts"], 10, 1 );
         add_action( "init", [$this, "ap_form_data_save"] );
@@ -53,11 +54,14 @@
         // Delete related post if category deleted.
         add_settings_field( 'ap_delete_post_if_cat_deleted', 'Delete related post (Only draft) if category deleted.', [$this, 'ap_delete_post_if_cat_deleted_cb'], 'ap_general_opt_page','ap_general_opt_section' );
         register_setting( 'ap_general_opt_section', 'ap_delete_post_if_cat_deleted' );
-        // Use the new category for the generated post
-        add_settings_field( 'ap_use_cat_for_post', 'Use the new category for the generated post', [$this, 'ap_use_cat_for_post_cb'], 'ap_general_opt_page','ap_general_opt_section' );
+        // Generate posts based on category creation
+        add_settings_field( 'ap_use_cat_for_post', 'Generate posts based on category creation.', [$this, 'ap_use_cat_for_post_cb'], 'ap_general_opt_page','ap_general_opt_section' );
         register_setting( 'ap_general_opt_section', 'ap_use_cat_for_post' );
+        // Generate posts based on tag creation
+        add_settings_field( 'ap_use_tag_for_post', 'Generate posts based on tag creation.', [$this, 'ap_use_tag_for_post_cb'], 'ap_general_opt_page','ap_general_opt_section' );
+        register_setting( 'ap_general_opt_section', 'ap_use_tag_for_post' );
         // Auto publish
-        add_settings_field( 'ap_auto_published', 'Auto published', [$this, 'ap_auto_published_cb'], 'ap_general_opt_page','ap_general_opt_section' );
+        add_settings_field( 'ap_auto_published', 'Auto published.', [$this, 'ap_auto_published_cb'], 'ap_general_opt_page','ap_general_opt_section' );
         register_setting( 'ap_general_opt_section', 'ap_auto_published' );
     }
 
@@ -66,6 +70,9 @@
     }
     function ap_use_cat_for_post_cb(){
         echo '<input type="checkbox" name="ap_use_cat_for_post" '.((get_option('ap_use_cat_for_post') === 'on') ? 'checked' : '').'>';
+    }
+    function ap_use_tag_for_post_cb(){
+        echo '<input type="checkbox" name="ap_use_tag_for_post" '.((get_option('ap_use_tag_for_post') === 'on') ? 'checked' : '').'>';
     }
     function ap_auto_published_cb(){
         echo '<input type="checkbox" name="ap_auto_published" '.((get_option('ap_auto_published') === 'on') ? 'checked' : '').'>';
@@ -77,14 +84,14 @@
     
     function template_component( $type = '', $field_name, $data, $index = null ){
         $ap_author =  null;
-        $ap_title =  '';
+        $ap_titles =  [];
         $ap_contents =  [];
         $ap_thumbnail =  '';
         $ap_tag =  [];
 
         if(is_array($data)){
             if(array_key_exists("ap_author", $data)) $ap_author = $data['ap_author'];
-            if(array_key_exists("ap_title", $data)) $ap_title = $data['ap_title'];
+            if(array_key_exists("ap_titles", $data)) $ap_titles = $data['ap_titles'];
             if(array_key_exists("ap_contents", $data)) $ap_contents = $data['ap_contents'];
             if(array_key_exists("ap_thumbnail", $data)) $ap_thumbnail = $data['ap_thumbnail'];
             if(array_key_exists("ap_tag", $data)) $ap_tag = $data['ap_tag'];
@@ -116,8 +123,31 @@
         $output .= '<tr>';
         $output .= '<th>Default title</th>';
         $output .= '<td>';
-        $output .= '<input type="text" name="'.$field_name.'[ap_title]" placeholder="How to %%cat_name%% Fix Guide." class="widefat" value="'.$ap_title.'">';
-        $output .= '<p>Use <code>%%cat_name%%</code> to show category name inside texts</p>';
+        $output .= '<div class="_default_titles">';
+
+        if(is_array($ap_titles)){
+            foreach($ap_titles as $key => $ap_title){
+                $output .= '<div class="title_content">';
+                $output .= '<input type="text" name="'.$field_name.'[ap_titles][]" placeholder="How to %%cat_name%% Fix Guide." class="widefat" value="'.$ap_title.'">';
+                $output .= '<p>Use <code>%%cat_name%%</code> to show category name inside texts</p>';
+                if($key > 0){
+                    $output .= '<span class="remove_title">+</span>';
+                }
+                $output .= '</div>';
+            }
+        }
+
+        if(empty($ap_titles)){
+            $output .= '<div class="title_content">';
+            $output .= '<input type="text" name="'.$field_name.'[ap_titles][]" placeholder="How to %%cat_name%% Fix Guide." class="widefat" value="">';
+            $output .= '<p>Use <code>%%cat_name%%</code> to show category name inside texts</p>';
+            $output .= '</div>';
+        }
+
+        $output .= '</div>';
+
+        $output .= '<button data-name="'.$field_name.'" class="button-secondary add_new_title">Add title</button>';
+
         $output .= '</td>';
         $output .= '</tr>';
         $output .= '<tr>';
@@ -197,28 +227,40 @@
         return $output;
     }
 
-    function create_new_catregory_action($term_id){
+    function create_new_catregory_action($cat_id){
         global $wpdb;
-        $cat_name = get_cat_name($term_id);
+        $cat_name = get_cat_name($cat_id);
 
         // Default data
         $ap_default = get_option( '_ap_default_template' );
         if(is_array($ap_default) && sizeof($ap_default) > 0){
             $ap_author =  1;
-            $ap_title =  '';
+            $ap_titles =  [];
             $ap_contents =  [];
             $ap_thumbnail =  '';
-            $ap_tag =  [];
+            $ap_tags =  [];
             
             if(array_key_exists("ap_author", $ap_default)) $ap_author = $ap_default['ap_author'];
-            if(array_key_exists("ap_title", $ap_default)) $ap_title = $ap_default['ap_title'];
+            if(array_key_exists("ap_titles", $ap_default)) $ap_titles = $ap_default['ap_titles'];
             if(array_key_exists("ap_contents", $ap_default)) $ap_contents = $ap_default['ap_contents'];
             if(array_key_exists("ap_thumbnail", $ap_default)) $ap_thumbnail = $ap_default['ap_thumbnail'];
-            if(array_key_exists("ap_tag", $ap_default)) $ap_tag = $ap_default['ap_tag'];
+            if(array_key_exists("ap_tag", $ap_default)) $ap_tags = $ap_default['ap_tag'];
 
-            $ap_title = ((!empty($ap_title)) ? $ap_title: 'How to %%cat_name%% Fix Guide.');
-            $ap_title = str_replace("%%cat_name%%", $cat_name, $ap_title);
+            // Title start
+            $title = '';
+            if(is_array($ap_titles) && sizeof($ap_titles) > 0){
+                shuffle($ap_titles);
+                $contentIndex = array_rand($ap_titles, 1);
+                $title = $ap_titles[$contentIndex];
+            }
+            if(empty($title)){
+                $title = 'How to %%cat_name%% Fix Guide.';
+            }
+            $title = str_replace("%%cat_name%%", $cat_name, $title);
+            $title = str_replace("%%cat_name%%", $cat_name, $title);
+            // Title end
             
+            // contents start
             $contents = '';
             if(is_array($ap_contents) && sizeof($ap_contents) > 0){
                 shuffle($ap_contents);
@@ -230,6 +272,7 @@
                 $contents = 'To fix the issues in %%cat_name%%, you have to do the following steps.';
             }
             $contents = str_replace("%%cat_name%%", $cat_name, $contents);
+            // contents end
 
             $status = 'draft';
             if(get_option('ap_auto_published') === 'on'){
@@ -238,28 +281,30 @@
 
             // Create post object
             $cat_post = array(
-                'post_title'    => wp_strip_all_tags( $ap_title ),
+                'post_title'    => wp_strip_all_tags( $title ),
                 'post_content'  => $contents,
                 'post_status'   => $status,
                 'post_author'   => $ap_author,
                 'meta_input'   => array(
-                    "ap_cat_$term_id" => $term_id
+                    "ap_cat_$cat_id" => $cat_id
                 ),
             );
 
             if(get_option('ap_use_cat_for_post') === 'on'){
-                $cat_post['post_category'] = array( $term_id );
+                $cat_post['post_category'] = array( $cat_id );
             }
 
-            // Insert the post into the database
-            $post_id = wp_insert_post( $cat_post );
+            if(get_option('ap_use_cat_for_post') === 'on' || get_option('ap_use_tag_for_post') === 'on'){
+                // Insert the post into the database
+                $post_id = wp_insert_post( $cat_post );
 
-            if($ap_thumbnail && !is_wp_error( $post_id )){
-                set_post_thumbnail( $post_id, $ap_thumbnail );
-            }
+                if($ap_thumbnail && !is_wp_error( $post_id )){
+                    set_post_thumbnail( $post_id, $ap_thumbnail );
+                }
 
-            if(is_array($ap_tag) && !is_wp_error( $post_id )){
-                wp_set_post_tags( $post_id, $ap_tag );
+                if(is_array($ap_tags) && !is_wp_error( $post_id )){
+                    wp_set_post_tags( $post_id, $ap_tags );
+                }
             }
         }
 
@@ -268,31 +313,42 @@
             foreach($additional_templates as $add_temp){
                 if(is_array($add_temp)){
                     $ap_author =  1;
-                    $ap_title =  '';
+                    $ap_titles =  [];
                     $ap_contents =  [];
                     $ap_thumbnail =  '';
-                    $ap_tag =  [];
+                    $ap_tags =  [];
                     
                     if(array_key_exists("ap_author", $add_temp)) $ap_author = $add_temp['ap_author'];
-                    if(array_key_exists("ap_title", $add_temp)) $ap_title = $add_temp['ap_title'];
+                    if(array_key_exists("ap_titles", $add_temp)) $ap_titles = $add_temp['ap_titles'];
                     if(array_key_exists("ap_contents", $add_temp)) $ap_contents = $add_temp['ap_contents'];
                     if(array_key_exists("ap_thumbnail", $add_temp)) $ap_thumbnail = $add_temp['ap_thumbnail'];
-                    if(array_key_exists("ap_tag", $add_temp)) $ap_tag = $add_temp['ap_tag'];
+                    if(array_key_exists("ap_tag", $add_temp)) $ap_tags = $add_temp['ap_tag'];
         
-                    $ap_title = ((!empty($ap_title)) ? $ap_title: 'How to %%cat_name%% Fix Guide.');
-                    $ap_title = str_replace("%%cat_name%%", $cat_name, $ap_title);
+                    // Title start
+                    $title = '';
+                    if(is_array($ap_titles) && sizeof($ap_titles) > 0){
+                        shuffle($ap_titles);
+                        $contentIndex = array_rand($ap_titles, 1);
+                        $title = $ap_titles[$contentIndex];
+                    }
+                    if(empty($title)){
+                        $title = 'How to %%cat_name%% Fix Guide.';
+                    }
+                    $title = str_replace("%%cat_name%%", $cat_name, $title);
+                    // Title end
                     
+                    // Contents start
                     $contents = '';
                     if(is_array($ap_contents) && sizeof($ap_contents) > 0){
                         shuffle($ap_contents);
                         $contentIndex = array_rand($ap_contents, 1);
                         $contents = $ap_contents[$contentIndex];
                     }
-        
                     if(empty($contents)){
                         $contents = 'To fix the issues in %%cat_name%%, you have to do the following steps.';
                     }
                     $contents = str_replace("%%cat_name%%", $cat_name, $contents);
+                    // Content end
         
                     $status = 'draft';
                     if(get_option('ap_auto_published') === 'on'){
@@ -301,28 +357,31 @@
         
                     // Create post object
                     $cat_post = array(
-                        'post_title'    => wp_strip_all_tags( $ap_title ),
+                        'post_title'    => wp_strip_all_tags( $title ),
                         'post_content'  => $contents,
                         'post_status'   => $status,
                         'post_author'   => $ap_author,
                         'meta_input'   => array(
-                            "ap_cat_$term_id" => $term_id
+                            "ap_cat_$cat_id" => $cat_id
                         ),
                     );
         
                     if(get_option('ap_use_cat_for_post') === 'on'){
-                        $cat_post['post_category'] = array( $term_id );
+                        $cat_post['post_category'] = array( $cat_id );
                     }
         
-                    // Insert the post into the database
-                    $post_id = wp_insert_post( $cat_post );
-        
-                    if($ap_thumbnail && !is_wp_error( $post_id )){
-                        set_post_thumbnail( $post_id, $ap_thumbnail );
-                    }
-        
-                    if(is_array($ap_tag) && !is_wp_error( $post_id )){
-                        wp_set_post_tags( $post_id, $ap_tag );
+                    
+                    if(get_option('ap_use_cat_for_post') === 'on' || get_option('ap_use_tag_for_post') === 'on'){
+                        // Insert the post into the database
+                        $post_id = wp_insert_post( $cat_post );
+            
+                        if($ap_thumbnail && !is_wp_error( $post_id )){
+                            set_post_thumbnail( $post_id, $ap_thumbnail );
+                        }
+            
+                        if(is_array($ap_tags) && !is_wp_error( $post_id )){
+                            wp_set_post_tags( $post_id, $ap_tags );
+                        }
                     }
                 }
             }
@@ -349,14 +408,22 @@
             $data = $_POST['ap_default_values'];
             $form_data = array(
                 'ap_author' => null,
-                'ap_title' => '',
+                'ap_titles' => [],
                 'ap_contents' => [],
                 'ap_thumbnail' => '',
                 'ap_tag' => ''
             );
             
             if(array_key_exists("ap_author", $data)) $form_data['ap_author'] = intval($data['ap_author']);
-            if(array_key_exists("ap_title", $data)) $form_data['ap_title'] = stripcslashes($data['ap_title']);
+            if(array_key_exists("ap_titles", $data)) $form_data['ap_titles'] = $data['ap_titles'];
+            if(array_key_exists("ap_titles", $form_data)) {
+                $titles_arr = [];
+                foreach($form_data['ap_titles'] as $titles){
+                    $titles_arr[] = stripcslashes( $titles );
+                }
+                $form_data['ap_titles'] = $titles_arr;
+            }
+
             if(array_key_exists("ap_contents", $data)) $form_data['ap_contents'] = $data['ap_contents'];
             if(array_key_exists("ap_contents", $form_data)) {
                 $contents_arr = [];
@@ -365,6 +432,7 @@
                 }
                 $form_data['ap_contents'] = $contents_arr;
             }
+
             if(array_key_exists("ap_thumbnail", $data)) $form_data['ap_thumbnail'] = intval($data['ap_thumbnail']);
             if(array_key_exists("ap_tag", $data)) $form_data['ap_tag'] = $data['ap_tag'];
 
@@ -379,14 +447,22 @@
                 foreach($templatesArr as $data){
                     $form_data = array(
                         'ap_author' => null,
-                        'ap_title' => '',
+                        'ap_titles' => [],
                         'ap_contents' => [],
                         'ap_thumbnail' => '',
                         'ap_tag' => ''
                     );
                     
                     if(array_key_exists("ap_author", $data)) $form_data['ap_author'] = intval($data['ap_author']);
-                    if(array_key_exists("ap_title", $data)) $form_data['ap_title'] = stripcslashes($data['ap_title']);
+                    if(array_key_exists("ap_titles", $data)) $form_data['ap_titles'] = $data['ap_titles'];
+                    if(array_key_exists("ap_titles", $form_data)) {
+                        $titles_arr = [];
+                        foreach($form_data['ap_titles'] as $titles){
+                            $titles_arr[] = stripcslashes( $titles );
+                        }
+                        $form_data['ap_titles'] = $titles_arr;
+                    }
+
                     if(array_key_exists("ap_contents", $data)) $form_data['ap_contents'] = $data['ap_contents'];
                     if(array_key_exists("ap_contents", $form_data)) {
                         $contents_arr = [];
@@ -395,6 +471,7 @@
                         }
                         $form_data['ap_contents'] = $contents_arr;
                     }
+
                     if(array_key_exists("ap_thumbnail", $data)) $form_data['ap_thumbnail'] = intval($data['ap_thumbnail']);
                     if(array_key_exists("ap_tag", $data)) $form_data['ap_tag'] = $data['ap_tag'];
 
