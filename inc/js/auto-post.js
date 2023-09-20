@@ -44,7 +44,11 @@ jQuery(document).ready(function ($) {
       placeholder: ' Select an author',
     });
     $('.ap_default_tag').selectize({
-      placeholder: ' Select tags',
+      placeholder: 'Select tags',
+      plugins: ['remove_button'],
+    });
+    $('.ap_default_cats').selectize({
+      placeholder: 'Select categories',
       plugins: ['remove_button'],
     });
   }
@@ -53,7 +57,7 @@ jQuery(document).ready(function ($) {
   $(document).on('click', '.add_new_title', function (e) {
     e.preventDefault();
     let namef = $(this).data('name');
-    let textareaContent = `<div class="title_content"><input type="text" name="${namef}[ap_titles][]" placeholder="How to %%cat_name%% Fix Guide." class="widefat" value=""><p>Use <code>%%cat_name%%</code> to show category name inside texts</p><span class="remove_title">+</span></div>`;
+    let textareaContent = `<div class="title_content"><input type="text" name="${namef}[ap_titles][]" placeholder="How to %%term_name%% Fix Guide." class="widefat" value=""><p>Use <code>%%term_name%%</code> to show term name inside texts</p><span class="remove_title">+</span></div>`;
     $(this).parents('td').find('._default_titles').append(textareaContent);
   });
 
@@ -68,7 +72,7 @@ jQuery(document).ready(function ($) {
   $(document).on('click', '.add_new_template', function (e) {
     e.preventDefault();
     let namef = $(this).data('name');
-    let textareaContent = `<div class="template_content"> <textarea name="${namef}[ap_contents][]" placeholder="To fix the issues in %%cat_name%%, you have to do the following steps." class="widefat" rows="5"></textarea> <p>Use <code>%%cat_name%%</code> to show category name inside texts.</p> <span class="remove_template">+</span></div>`;
+    let textareaContent = `<div class="template_content"> <textarea name="${namef}[ap_contents][]" placeholder="To fix the issues in %%term_name%%, you have to do the following steps." class="widefat" rows="5"></textarea> <p>Use <code>%%term_name%%</code> to show term name inside texts.</p> <span class="remove_template">+</span></div>`;
     $(this).parents('td').find('.__default_templates').append(textareaContent);
   });
   
@@ -101,11 +105,15 @@ jQuery(document).ready(function ($) {
         if (response.template) {
           $('#additional_templates').append(response.template);
           $('#user-'+timestamp).selectize({
-            placeholder: ' Select an author',
+            placeholder: 'Select an author',
           });
 
           $('#tags-'+timestamp).selectize({
-            placeholder: ' Select tags',
+            placeholder: 'Select tags',
+            plugins: ['remove_button'],
+          });
+          $('#ap_cats-'+timestamp).selectize({
+            placeholder: 'Select categories',
             plugins: ['remove_button'],
           });
         }
