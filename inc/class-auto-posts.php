@@ -255,7 +255,6 @@
         if(get_option('ap_use_tag_for_post') !== 'on'){
             return;
         }
-
         $tag_name = get_term( $tag_id )->name;
 
         // Default data
@@ -272,6 +271,9 @@
             if(array_key_exists("ap_contents", $ap_default)) $ap_contents = $ap_default['ap_contents'];
             if(array_key_exists("ap_thumbnail", $ap_default)) $ap_thumbnail = $ap_default['ap_thumbnail'];
             if(array_key_exists("ap_tags", $ap_default)) $ap_tags = $ap_default['ap_tags'];
+            if(!is_array($ap_titles)) $ap_titles = [];
+            if(!is_array($ap_contents)) $ap_contents = [];
+            if(!is_array($ap_tags)) $ap_tags = [];
             $ap_tags[] = $tag_name;
 
             // Title start
@@ -345,6 +347,9 @@
                     if(array_key_exists("ap_contents", $add_temp)) $ap_contents = $add_temp['ap_contents'];
                     if(array_key_exists("ap_thumbnail", $add_temp)) $ap_thumbnail = $add_temp['ap_thumbnail'];
                     if(array_key_exists("ap_tags", $add_temp)) $ap_tags = $add_temp['ap_tags'];
+                    if(!is_array($ap_titles)) $ap_titles = [];
+                    if(!is_array($ap_contents)) $ap_contents = [];
+                    if(!is_array($ap_tags)) $ap_tags = [];
                     $ap_tags[] = $tag_name;
         
                     // Title start
@@ -427,7 +432,11 @@
             if(array_key_exists("ap_contents", $ap_default)) $ap_contents = $ap_default['ap_contents'];
             if(array_key_exists("ap_thumbnail", $ap_default)) $ap_thumbnail = $ap_default['ap_thumbnail'];
             if(array_key_exists("ap_cats", $ap_default)) $ap_cats = $ap_default['ap_cats'];
+            if(!is_array($ap_titles)) $ap_titles = [];
+            if(!is_array($ap_contents)) $ap_contents = [];
+            if(!is_array($ap_cats)) $ap_cats = [];
             $ap_cats[] = $cat_id;
+
             // Title start
             $title = '';
             if(is_array($ap_titles) && sizeof($ap_titles) > 0){
@@ -499,6 +508,9 @@
                     if(array_key_exists("ap_contents", $add_temp)) $ap_contents = $add_temp['ap_contents'];
                     if(array_key_exists("ap_thumbnail", $add_temp)) $ap_thumbnail = $add_temp['ap_thumbnail'];
                     if(array_key_exists("ap_cats", $add_temp)) $ap_cats = $add_temp['ap_cats'];
+                    if(!is_array($ap_titles)) $ap_titles = [];
+                    if(!is_array($ap_contents)) $ap_contents = [];
+                    if(!is_array($ap_cats)) $ap_cats = [];
                     $ap_cats[] = $cat_id;
         
                     // Title start
